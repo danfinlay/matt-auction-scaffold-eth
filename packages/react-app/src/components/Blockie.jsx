@@ -4,7 +4,6 @@ import { toChecksumAddress } from "ethereumjs-util";
 
 export default function Blockie (props) {
   const addr = props.address || props.seed;
-  console.log(`Generating jazzicon for ${addr}`, props);
   if (!addr || typeof addr.toLowerCase !== "function") {
     return <span />;
   }
@@ -16,6 +15,5 @@ function jsNumberForAddress(lowCaseAddr) {
   const address = toChecksumAddress(lowCaseAddr);
   const addr = address.slice(2, 10);
   const seed = parseInt(addr, 16);
-  console.log(seed);
   return seed;
 }
