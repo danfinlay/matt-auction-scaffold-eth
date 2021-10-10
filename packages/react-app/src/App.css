@@ -1,3 +1,17 @@
 .App {
   text-align: center;
 }
+
+.mattBidder {
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+}
+
+.mattBidder > div {
+  align-self: center;
+}
+
+.mattBidder > p {
+  margin: 4px;
+}

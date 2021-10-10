@@ -8,7 +8,7 @@ import ReactJson from "react-json-view";
 import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
 import Web3Modal from "web3modal";
 import "./App.css";
-import { Account, Address, AddressInput, Contract, Faucet, GasGauge, Header, Ramp, ThemeSwitch } from "./components";
+import { Account, Address, AddressInput, Contract, Faucet, GasGauge, Header, Ramp, MattBidder, ThemeSwitch } from "./components";
 import {INFURA_ID, NETWORK, NETWORKS } from "./constants";
 import { Transactor } from "./helpers";
 import {
@@ -27,7 +27,6 @@ const { BufferList } = require("bl");
 // https://www.npmjs.com/package/ipfs-http-client
 const ipfsAPI = require("ipfs-http-client");
 const ipfs = ipfsAPI({ host: "ipfs.infura.io", port: "5001", protocol: "https" });
-
 
 // contracts
 import deployedContracts from "./contracts/hardhat_contracts.json";
@@ -542,6 +541,17 @@ function App(props) {
       {networkDisplay}
       <BrowserRouter>
         <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
+
+          <Menu.Item key="/bid">
+            <Link
+              onClick={() => {
+                setRoute("/bid");
+              }}
+              to="/bid"
+            >
+             Bid 
+            </Link>
+          </Menu.Item>
           <Menu.Item key="/">
             <Link
               onClick={() => {
@@ -654,6 +664,10 @@ function App(props) {
                 }}
               />
             </div>
+          </Route>
+
+          <Route path="/bid">
+            <MattBidder />
           </Route>
 
           <Route path="/transfers">
@@ -833,3 +847,4 @@ function App(props) {
 }
 
 export default App;
+
