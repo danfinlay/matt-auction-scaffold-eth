@@ -114,7 +114,10 @@ function generateBidData (bidders) {
 
   const ret = [['Price Per Item', ...bidderNames]];
 
-  sortedBidArr.forEach((bidder, i) => {
+
+
+  for (let i = 0; i < sortedBidArr.length; i++) {
+    const bidder = sortedBidArr[i];
 
     // Enter their actual price
     const bid = bidder.bid;
@@ -123,7 +126,19 @@ function generateBidData (bidders) {
       return 0;
     })];
     ret.push(bids);
-  });
+
+    
+    const nextBidder = sortedBidArr[i+1];
+    if (nextBidder) {
+      const nextBid = nextBidder.bid + Number.MIN_VALUE;
+      const smallBids = [nextBid, ...sortedBidArr.map((bidder) => {
+        if (bidder.bid >= bid) return nextBid;
+        return 0;
+      })];
+      ret.push(smallBids);
+    }
+
+  };
 
   console.log("Bidder data", ret);
   return ret;
