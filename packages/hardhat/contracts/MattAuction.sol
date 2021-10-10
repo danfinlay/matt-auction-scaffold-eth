@@ -1,11 +1,11 @@
-pragma solidity ^0.8.0;
-//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
 
 //import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./ECRecovery.sol";
 //learn more: https://docs.openzeppelin.com/contracts/3.x/erc721
 
 // Just for debugging, TODO: Remove for prod
@@ -13,13 +13,13 @@ import "hardhat/console.sol";
 
 // GET LISTED ON OPENSEA: https://testnets.opensea.io/get-listed/step-two
 
-contract MattAuction is ERC721, Ownable {
+contract MattAuction is ERC721, Ownable, ECRecovery {
 
   using Counters for Counters.Counter;
   Counters.Counter private _tokenIds;
   string nftHash;
 
-  constructor(string _nftHash) public ERC721("MattAuction", "MATT") {
+  constructor(string memory _nftHash) public ERC721("MattAuction", "MATT") {
     nftHash = _nftHash;
   }
 
@@ -48,7 +48,7 @@ contract MattAuction is ERC721, Ownable {
 
       string memory baseURI = _baseURI();
       return bytes(baseURI).length > 0
-          ? string(abi.encodePacked(baseURI, tokenId.toString()))
+          ? string(abi.encodePacked(baseURI, nftHash))
           : '';
   }
 
@@ -102,7 +102,7 @@ contract MattAuction is ERC721, Ownable {
           // Transfer payment
           IERC20(auction.currencyTokenAddress).transferFrom(signed.bid.currencyTokenAddress, auction.owner, price);
 
-          mintItem(signed.bid.bidderAddress)
+          mintItem(signed.bid.bidderAddress);
       }
 
       auction.open = false;
@@ -151,8 +151,7 @@ contract MattAuction is ERC721, Ownable {
   }
 
   function getTypedDataHash(uint256 nft,address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount) public view returns (bytes32) {
-      getEIP712DomainHash('MattAuction','1',block.chainid,address(this))
-    );
+    getEIP712DomainHash('MattAuction','1',block.chainid,address(this));
 
     bytes32 digest = keccak256(abi.encodePacked(
       "\x19\x01",
@@ -173,43 +172,5 @@ contract MattAuction is ERC721, Ownable {
       //DO SOME FUN STUFF HERE
       return true;
   }
-}
-
-
-contract ECRecovery {
-
-    /**
-    * @dev Recover signer address from a message by using their signature
-    * @param hash bytes32 message, the hash is the signed message. What is recovered is the signer address.
-    * @param sig bytes signature, the signature is generated using web3.eth.sign()
-    */
-    function recover(bytes32 hash, bytes memory sig) internal pure returns (address) {
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-
-        //Check the signature length
-        if (sig.length != 65) {
-            return (address(0));
-        }
-
-        // Divide the signature in r, s and v variables
-        assembly {
-            r := mload(add(sig, 32))
-            s := mload(add(sig, 64))
-            v := byte(0, mload(add(sig, 96)))
-        }
-// Version of signature should be 27 or 28, but 0 and 1 are also possible versions
-        if (v < 27) {
-            v += 27;
-        }
-
-        // If the version is correct return the signer address
-        if (v != 27 && v != 28) {
-            return (address(0));
-        } else {
-            return ecrecover(hash, v, r, s);
-        }
-    }
 }
 
