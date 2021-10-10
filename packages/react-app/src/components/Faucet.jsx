@@ -2,7 +2,7 @@ import { SendOutlined } from "@ant-design/icons";
 import { Button, Input, Tooltip } from "antd";
 // import { useLookupAddress } from "eth-hooks/dapps/ens";
 import React, { useCallback, useState, useEffect } from "react";
-import Blockies from "react-blockies";
+import Blockie from "./Blockie";
 import { Transactor } from "../helpers";
 import Wallet from "./Wallet";
 
@@ -55,7 +55,7 @@ export default function Faucet(props) {
 
   let blockie;
   if (address && typeof address.toLowerCase === "function") {
-    blockie = <Blockies seed={address.toLowerCase()} size={8} scale={4} />;
+    blockie = <Blockie seed={address.toLowerCase()} size={8} scale={4} />;
   } else {
     blockie = <div />;
   }

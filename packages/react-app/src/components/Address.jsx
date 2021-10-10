@@ -1,6 +1,6 @@
 import { Skeleton, Typography } from "antd";
 import React from "react";
-import Blockies from "react-blockies";
+import Blockie from "./Blockie";
 import { useThemeSwitcher } from "react-css-theme-switcher";
 import { useLookupAddress } from "eth-hooks/dapps/ens";
 
@@ -72,7 +72,7 @@ export default function Address(props) {
           href={etherscanLink}
           rel="noopener noreferrer"
         >
-          <Blockies seed={address.toLowerCase()} size={8} scale={2} />
+          <Blockie seed={address.toLowerCase()} size={8} scale={2} />
         </a>
       </span>
     );
@@ -110,7 +110,7 @@ export default function Address(props) {
   return (
     <span>
       <span style={{ verticalAlign: "middle" }}>
-        <Blockies seed={address.toLowerCase()} size={8} scale={props.fontSize ? props.fontSize / 7 : 4} />
+        <Blockie seed={address.toLowerCase()} size={8} scale={props.fontSize ? props.fontSize / 7 : 4} />
       </span>
       <span style={{ verticalAlign: "middle", paddingLeft: 5, fontSize: props.fontSize ? props.fontSize : 28 }}>
         {text}

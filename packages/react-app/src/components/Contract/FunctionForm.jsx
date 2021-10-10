@@ -1,6 +1,6 @@
 import { Button, Col, Divider, Input, Row, Tooltip } from "antd";
 import React, { useState } from "react";
-import Blockies from "react-blockies";
+import Blockie from "../Blockie";
 import { Transactor } from "../../helpers";
 import tryToDisplay from "./utils";
 
@@ -87,7 +87,7 @@ export default function FunctionForm({ contractFunction, functionInfo, provider,
       if (possibleAddress && possibleAddress.length === 42) {
         buttons = (
           <Tooltip placement="right" title="blockie">
-            <Blockies seed={possibleAddress} scale={3} />
+            <Blockie seed={possibleAddress} scale={3} />
           </Tooltip>
         );
       }
