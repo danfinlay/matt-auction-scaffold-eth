@@ -27,6 +27,7 @@ describe("MattAuction", function () {
     };
     const { nft, bidderAddress, currencyTokenAddress, currencyTokenAmount } = message;
     expect(mattAuction.address).to.be.properAddress;
+    const chainId = mattAuction.deployTransaction.chainId;
 
     const typedMessage = {
       types,
@@ -34,7 +35,7 @@ describe("MattAuction", function () {
       domain: {
         name: 'MattAuction',
         version: '1',
-        chainId: 1337,
+        chainId,
         verifyingContract: mattAuction.address,
       },
       message,

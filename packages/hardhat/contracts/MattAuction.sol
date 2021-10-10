@@ -1,6 +1,5 @@
 pragma solidity ^0.8.4;
 
-//import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
@@ -9,7 +8,7 @@ import "./ECRecovery.sol";
 //learn more: https://docs.openzeppelin.com/contracts/3.x/erc721
 
 // Just for debugging, TODO: Remove for prod
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 // GET LISTED ON OPENSEA: https://testnets.opensea.io/get-listed/step-two
 
@@ -151,12 +150,13 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   }
 
   function getTypedDataHash(uint256 nft,address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount) public view returns (bytes32) {
-    getEIP712DomainHash('MattAuction','1',block.chainid,address(this));
 
+    bytes32 domainHash = getEIP712DomainHash('MattAuction','1',block.chainid,address(this));
+    bytes32 packetHash = getPacketHash(nft,bidderAddress,currencyTokenAddress,currencyTokenAmount);
     bytes32 digest = keccak256(abi.encodePacked(
       "\x19\x01",
-      getEIP712DomainHash('MattAuction','1',block.chainid,address(this)),
-      getPacketHash(nft,bidderAddress,currencyTokenAddress,currencyTokenAmount)
+      domainHash,
+      packetHash
     ));
     return digest;
   }
