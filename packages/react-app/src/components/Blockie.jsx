@@ -1,8 +1,8 @@
 import React from "react";
-import Jazzicon from 'react-jazzicon'
-import { toChecksumAddress } from 'ethereumjs-util';
+import Jazzicon from "react-jazzicon";
+import { toChecksumAddress } from "ethereumjs-util";
 
-export default function Jazzicon (props) {
+export default function JazziconComponent (props) {
   if (!props.address || typeof props.address.toLowerCase !== "function") {
     return <span />;
   }
