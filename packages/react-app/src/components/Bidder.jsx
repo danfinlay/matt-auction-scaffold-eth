@@ -34,12 +34,12 @@ export default function MattBidder (props) {
   let winningBid = 0;
   let winnerCount = 0;
   for (let i = 1; i < bidData.length; i++) {
-    const totalRev = bidData[i].reduce(sumReducer);
+    const totalRev = bidData[i].reduce(sumReducer) - bidData[i][0];
     console.log(`The sum of ${JSON.stringify(bidData[i])} is ${totalRev}`);
     if (totalRev > topRev) {
       topRev = totalRev;
       winningBid = bidData[i][0];
-      winnerCount = bidData[i].filter(n => n >= winningBid).length;
+      winnerCount = bidData[i].filter(n => n >= winningBid).length - 1;
     };
   }
 
