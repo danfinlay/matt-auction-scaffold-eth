@@ -73,22 +73,6 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     mapping (bytes => bool) is_in;
   }
 
-  Set revokedBids;
-
-  event BidRevoked(bytes signature);
-
-  function revokeBid(uint256 nft,address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount,bytes memory offchainSignature) public {
-    bytes32 sigHash = getTypedDataHash(nft,bidderAddress,currencyTokenAddress,currencyTokenAmount);
-    address recoveredSignatureSigner = recover(sigHash,offchainSignature);
-    require(bidderAddress == recoveredSignatureSigner, "Can only revoke own bids.");
-
-    if (!revokedBids.is_in[offchainSignature]) {
-      revokedBids.values.push(offchainSignature);
-      revokedBids.is_in[offchainSignature] = true;
-      emit BidRevoked(offchainSignature);
-    }
-  }
-
   event TransferFromFailed(address buyer);
   function endAuction (uint256 price, address currencyTokenAddress, SignedBid[] calldata signedBids) public onlyOwner {
     require(saleIsOpen, "This contract has already conducted its one sale.");
@@ -185,15 +169,8 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
 
     address recoveredSignatureSigner = recover(sigHash,offchainSignature);
 
-    // require(bidderAddress == recoveredSignatureSigner, 'Invalid signature');
-
-    require(bidderAddress == recoveredSignatureSigner, "Signature recovery failed");
-
-    // Do not process revoked bids
-    if (!revokedBids.is_in[offchainSignature]) {
-      return true;
-    }
-    return false;
+    require(bidderAddress == recoveredSignatureSigner, 'Invalid signature');
+    return true;
   }
 }
 

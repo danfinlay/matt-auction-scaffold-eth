@@ -54,7 +54,6 @@ describe("MattAuction", function () {
     expect(verified).to.equal(true);
   });
 
-  it('Should allow revoking bids');
   it('Should allow ending an auction with many bids, and mint NFTs to those bidders.');
   it('Should only allow owner to end auctions');
 });
