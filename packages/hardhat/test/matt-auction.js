@@ -56,10 +56,21 @@ describe("MattAuction", function () {
 
     const verified = await mattAuction.verifyBid(signedBid);
     expect(verified).to.equal(true);
+
+    console.log(mattAuction);
+    await mattAuction.methods.endAuction(
+      message.currencyTokenAmount,
+      [signedBid],
+    ).send();
+
+    const saleIsOpen = await mattAuction.isSaleOpen();
+    expect(saleIsOpen).to.equal(false);
   });
 
   it('Should allow ending an auction with many bids, and mint NFTs to those bidders.');
   it('Should only allow owner to end auctions');
+
+
 });
 
 
