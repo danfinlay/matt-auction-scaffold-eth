@@ -1,6 +1,5 @@
 const types = {
   Bid: [
-    { name: 'nft', type: 'uint256' },
     { name: 'bidderAddress', type: 'address' },
     { name: 'currencyTokenAddress', type: 'address' },
     { name: 'currencyTokenAmount', type: 'uint256' },

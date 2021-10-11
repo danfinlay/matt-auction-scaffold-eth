@@ -22,9 +22,11 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   using Counters for Counters.Counter;
   Counters.Counter private _tokenIds;
   string nftHash;
+  address acceptedCurrencyToken;
 
-  constructor(string memory _nftHash) ERC721("MattAuction", "MATT") {
+  constructor(string memory _nftHash, address _acceptedCurrencyToken) ERC721("MattAuction", "MATT") {
     nftHash = _nftHash;
+    acceptedCurrencyToken = _acceptedCurrencyToken;
   }
 
   function _baseURI() internal view virtual override returns (string memory) {
@@ -57,7 +59,6 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   }
 
   struct Bid {
-      uint256 nft;
       address bidderAddress;
       address currencyTokenAddress;
       uint256 currencyTokenAmount;
@@ -89,7 +90,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
         assert(signed.bid.currencyTokenAddress == currencyTokenAddress);
 
         // Verify signature
-        assert(verifyBidSignature(signed.bid.nft, signed.bid.bidderAddress, signed.bid.currencyTokenAddress, signed.bid.currencyTokenAmount, signed.sig));
+        assert(verifyBidSignature(signed.bid.bidderAddress, signed.bid.currencyTokenAddress, signed.bid.currencyTokenAmount, signed.sig));
 
         // Transfer payment
         // Try catch method from https://blog.polymath.network/try-catch-in-solidity-handling-the-revert-exception-f53718f76047
@@ -112,7 +113,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   }
 
   bytes32 constant PACKET_TYPEHASH = keccak256(
-    "Bid(uint256 nft,address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount)"
+    "Bid(address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount)"
   );
 
   bytes32 constant EIP712DOMAIN_TYPEHASH = keccak256(
@@ -138,24 +139,22 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   }
 
   function getPacketHash(
-    uint256 nft,
     address bidderAddress,
     address currencyTokenAddress,
     uint256 currencyTokenAmount
   ) public pure returns (bytes32) {
     return keccak256(abi.encode(
       PACKET_TYPEHASH,
-      nft,
       bidderAddress,
       currencyTokenAddress,
       currencyTokenAmount
     ));
   }
 
-  function getTypedDataHash(uint256 nft,address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount) public view returns (bytes32) {
+  function getTypedDataHash(address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount) public view returns (bytes32) {
 
     bytes32 domainHash = getEIP712DomainHash('MattAuction','1',block.chainid,address(this));
-    bytes32 packetHash = getPacketHash(nft,bidderAddress,currencyTokenAddress,currencyTokenAmount);
+    bytes32 packetHash = getPacketHash(bidderAddress,currencyTokenAddress,currencyTokenAmount);
     bytes32 digest = keccak256(abi.encodePacked(
       "\x19\x01",
       domainHash,
@@ -164,13 +163,22 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     return digest;
   }
 
-  function verifyBidSignature(uint256 nft,address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount,bytes memory offchainSignature) public view returns (bool) {
-    bytes32 sigHash = getTypedDataHash(nft,bidderAddress,currencyTokenAddress,currencyTokenAmount);
+  function verifyBidSignature(address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount,bytes memory offchainSignature) public view returns (bool) {
+    bytes32 sigHash = getTypedDataHash(bidderAddress,currencyTokenAddress,currencyTokenAmount);
 
     address recoveredSignatureSigner = recover(sigHash,offchainSignature);
 
     require(bidderAddress == recoveredSignatureSigner, 'Invalid signature');
     return true;
+  }
+
+  function verifyBid(SignedBid memory signedBid) public view returns (bool) {
+    return verifyBidSignature(
+      signedBid.bid.bidderAddress,
+      signedBid.bid.currencyTokenAddress,
+      signedBid.bid.currencyTokenAmount,
+      signedBid.sig
+    );
   }
 }
 
