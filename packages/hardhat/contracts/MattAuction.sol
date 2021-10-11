@@ -14,6 +14,11 @@ import "./ECRecovery.sol";
 
 contract MattAuction is ERC721, Ownable, ECRecovery {
 
+  bool saleIsOpen = true;
+  function isSaleOpen() external returns (bool) {
+    return saleIsOpen;
+  }
+
   using Counters for Counters.Counter;
   Counters.Counter private _tokenIds;
   string nftHash;
@@ -63,49 +68,62 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
       bytes sig;
   }
 
-  struct Auction {
-      uint endTime;
-      address owner;
-      address currencyTokenAddress;
-      bool open;
+  struct Set {
+    bytes[] values;
+    mapping (bytes => bool) is_in;
   }
 
-  mapping (bytes32 => Auction) auctions;
+  Set revokedBids;
 
-  function startAuction (bytes32 nftData, uint endTime, address token, address owner) public {
-     auctions[nftData] = Auction(endTime, owner, token, true);
+  event BidRevoked(bytes signature);
+
+  function revokeBid(uint256 nft,address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount,bytes memory offchainSignature) public {
+    bytes32 sigHash = getTypedDataHash(nft,bidderAddress,currencyTokenAddress,currencyTokenAmount);
+    address recoveredSignatureSigner = recover(sigHash,offchainSignature);
+    require(bidderAddress == recoveredSignatureSigner, "Can only revoke own bids.");
+
+    if (!revokedBids.is_in[offchainSignature]) {
+      revokedBids.values.push(offchainSignature);
+      revokedBids.is_in[offchainSignature] = true;
+      emit BidRevoked(offchainSignature);
+    }
   }
 
-  function endAuction (bytes32 nftData, SignedBid[] calldata signedBids) public {
-      Auction memory auction = auctions[nftData];
+  event TransferFromFailed(address buyer);
+  function endAuction (bytes32 nftData, uint256 price, address currencyTokenAddress, SignedBid[] calldata signedBids) public onlyOwner {
+    require(saleIsOpen, "This contract has already conducted its one sale.");
 
-      // Enforce only the auction owner can end it
-      assert(msg.sender == auction.owner);
+    for (uint i=0; i < signedBids.length; i++) {
+        SignedBid memory signed = signedBids[i];
 
-      // Assume the lowest (price-setting) bid is first (enforce in the loop)
-      uint256 price = signedBids[0].bid.currencyTokenAmount;
+        // Enforce all bids are above or equal to the first (low) bid price:
+        // TODO: Use safe math
+        assert(signed.bid.currencyTokenAmount >= price);
 
-      for (uint i=0; i < signedBids.length; i++) {
-          SignedBid memory signed = signedBids[i];
+        // Ensure the bid meant to be in the auction's currency.
+        // This data was redundant to sign, but improves end-user legibility.
+        assert(signed.bid.currencyTokenAddress == currencyTokenAddress);
 
-          // Enforce all bids are above or equal to the first (low) bid price:
-          assert(signed.bid.currencyTokenAmount >= price);
+        // Verify signature
+        assert(verifyBidSignature(signed.bid.nft, signed.bid.bidderAddress, signed.bid.currencyTokenAddress, signed.bid.currencyTokenAmount, signed.sig));
 
-          // Ensure the bid meant to be in the auction's currency.
-          // This data was redundant to sign, but improves end-user legibility.
-          assert(signed.bid.currencyTokenAddress == auction.currencyTokenAddress);
-
-          // Verify signature
-          assert(verifyBidSignature(signed.bid.nft, signed.bid.bidderAddress, signed.bid.currencyTokenAddress, signed.bid.currencyTokenAmount, signed.sig));
-
-          // Transfer payment
-          IERC20(auction.currencyTokenAddress).transferFrom(signed.bid.currencyTokenAddress, auction.owner, price);
-
-          mintItem(signed.bid.bidderAddress);
+        // Transfer payment
+        (bool success, bytes memory returnData) =
+          address(currencyTokenAddress).call( // This creates a low level call to the token
+            abi.encodePacked( // This encodes the function to call and the parameters to pass to that function
+              IERC20(currencyTokenAddress).transferFrom.selector, // This is the function identifier of the function we want to call
+              abi.encode(signed.bid.currencyTokenAddress, msg.sender, price) // This encodes the parameter we want to pass to the function
+            )
+          );
+      if (success) { // transferFrom completed successfully (did not revert)
+        mintItem(signed.bid.bidderAddress);
+      } else { // transferFrom reverted. However, the complete tx did not revert and we can handle the case here.
+        // I will emit an event here to show this
+        emit TransferFromFailed(signed.bid.bidderAddress);
       }
+    }
 
-      auction.open = false;
-      auctions[nftData] = auction;
+    saleIsOpen = false;
   }
 
   bytes32 constant PACKET_TYPEHASH = keccak256(
@@ -162,15 +180,18 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   }
 
   function verifyBidSignature(uint256 nft,address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount,bytes memory offchainSignature) public view returns (bool) {
-      bytes32 sigHash = getTypedDataHash(nft,bidderAddress,currencyTokenAddress,currencyTokenAmount);
+    bytes32 sigHash = getTypedDataHash(nft,bidderAddress,currencyTokenAddress,currencyTokenAmount);
 
-      address recoveredSignatureSigner = recover(sigHash,offchainSignature);
+    address recoveredSignatureSigner = recover(sigHash,offchainSignature);
 
-      // require(bidderAddress == recoveredSignatureSigner, 'Invalid signature');
+    // require(bidderAddress == recoveredSignatureSigner, 'Invalid signature');
 
-      require(bidderAddress == recoveredSignatureSigner, "Signature recovery failed");
-      //DO SOME FUN STUFF HERE
+    require(bidderAddress == recoveredSignatureSigner, "Signature recovery failed");
+
+    // Do not process revoked bids
+    if (!revokedBids.is_in[offchainSignature]) {
       return true;
+    }
   }
 }
 

@@ -53,4 +53,8 @@ describe("MattAuction", function () {
     const verified = await mattAuction.verifyBidSignature(nft, bidderAddress, currencyTokenAddress, currencyTokenAmount, signature);
     expect(verified).to.equal(true);
   });
+
+  it('Should allow revoking bids');
+  it('Should allow ending an auction with many bids, and mint NFTs to those bidders.');
+  it('Should only allow owner to end auctions');
 });
