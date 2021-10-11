@@ -22,11 +22,11 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   using Counters for Counters.Counter;
   Counters.Counter private _tokenIds;
   string nftHash;
-  address _acceptedCurrencyToken;
+  address _currencyTokenAddress;
 
   constructor(string memory _nftHash, address _currencyToken) ERC721("MattAuction", "MATT") {
     nftHash = _nftHash;
-    _acceptedCurrencyToken = _currencyToken;
+    _currencyTokenAddress = _currencyToken;
   }
 
   function _baseURI() internal view virtual override returns (string memory) {
@@ -60,7 +60,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
 
   struct Bid {
       address bidderAddress;
-      address acceptedCurrencyToken;
+      address currencyTokenAddress;
       uint256 currencyTokenAmount;
   }
 
@@ -83,22 +83,22 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
 
         // Enforce all bids are above or equal to the first (low) bid price:
         // TODO: Use safe math
-        assert(signed.bid.currencyTokenAmount >= price);
+        require(signed.bid.currencyTokenAmount >= price, 'bid underpriced');
 
         // Ensure the bid meant to be in the auction's currency.
         // This data was redundant to sign, but improves end-user legibility.
-        assert(signed.bid.acceptedCurrencyToken == _acceptedCurrencyToken);
+        require(signed.bid.currencyTokenAddress == _currencyTokenAddress, 'bid in wrong currency');
 
         // Verify signature
-        assert(verifyBid(signed));
+        require(verifyBid(signed), 'bid signature invalid');
 
         // Transfer payment
         // Try catch method from https://blog.polymath.network/try-catch-in-solidity-handling-the-revert-exception-f53718f76047
         (bool success, bytes memory _returnData) =
-          address(_acceptedCurrencyToken).call( // This creates a low level call to the token
+          address(_currencyTokenAddress).call( // This creates a low level call to the token
             abi.encodePacked( // This encodes the function to call and the parameters to pass to that function
-              IERC20(_acceptedCurrencyToken).transferFrom.selector, // This is the function identifier of the function we want to call
-              abi.encode(signed.bid.acceptedCurrencyToken, owner(), price) // This encodes the parameter we want to pass to the function
+              IERC20(_currencyTokenAddress).transferFrom.selector, // This is the function identifier of the function we want to call
+              abi.encode(signed.bid.currencyTokenAddress, owner(), price) // This encodes the parameter we want to pass to the function
             )
           );
       if (success) { // transferFrom completed successfully (did not revert)
@@ -113,7 +113,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   }
 
   bytes32 constant PACKET_TYPEHASH = keccak256(
-    "Bid(address bidderAddress,address acceptedCurrencyToken,uint256 currencyTokenAmount)"
+    "Bid(address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount)"
   );
 
   bytes32 constant EIP712DOMAIN_TYPEHASH = keccak256(
@@ -140,21 +140,21 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
 
   function getPacketHash(
     address bidderAddress,
-    address acceptedCurrencyToken,
+    address currencyTokenAddress,
     uint256 currencyTokenAmount
   ) public pure returns (bytes32) {
     return keccak256(abi.encode(
       PACKET_TYPEHASH,
       bidderAddress,
-      acceptedCurrencyToken,
+      currencyTokenAddress,
       currencyTokenAmount
     ));
   }
 
-  function getTypedDataHash(address bidderAddress,address acceptedCurrencyToken,uint256 currencyTokenAmount) public view returns (bytes32) {
+  function getTypedDataHash(address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount) public view returns (bytes32) {
 
     bytes32 domainHash = getEIP712DomainHash('MattAuction','1',block.chainid,address(this));
-    bytes32 packetHash = getPacketHash(bidderAddress,acceptedCurrencyToken,currencyTokenAmount);
+    bytes32 packetHash = getPacketHash(bidderAddress,currencyTokenAddress,currencyTokenAmount);
     bytes32 digest = keccak256(abi.encodePacked(
       "\x19\x01",
       domainHash,
@@ -166,7 +166,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   function verifyBid(SignedBid memory signedBid) public view returns (bool) {
     bytes32 sigHash = getTypedDataHash(
       signedBid.bid.bidderAddress,
-      signedBid.bid.acceptedCurrencyToken,
+      signedBid.bid.currencyTokenAddress,
       signedBid.bid.currencyTokenAmount
     );
 

@@ -12,16 +12,17 @@ const account = {
 const keyring = new Keyring([account.privateKey]);
 
 const sampleIpfsHash = 'QmcbMZW8hcd46AfUsJUxQYTanHYDpeUq3pBuX5nihPEKD9'; // "hello, world!"
+const sampleTokenAddress = '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826';
 
 describe("MattAuction", function () {
   it("should verify a signature correctly", async function () {
     const MattAuction = await ethers.getContractFactory("MattAuction");
-    const mattAuction = await MattAuction.deploy(sampleIpfsHash, account.address);
+    const mattAuction = await MattAuction.deploy(sampleIpfsHash, sampleTokenAddress);
     await mattAuction.deployed();
 
     const message = {
       bidderAddress: account.address,
-      currencyTokenAddress: '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
+      currencyTokenAddress: sampleTokenAddress,
       currencyTokenAmount: '0x100',
     };
     const { bidderAddress, currencyTokenAddress, currencyTokenAmount } = message;
@@ -57,11 +58,10 @@ describe("MattAuction", function () {
     const verified = await mattAuction.verifyBid(signedBid);
     expect(verified).to.equal(true);
 
-    console.log(mattAuction);
-    await mattAuction.methods.endAuction(
-      message.currencyTokenAmount,
+    await mattAuction.endAuction(
+      '0x1',
       [signedBid],
-    ).send();
+    );
 
     const saleIsOpen = await mattAuction.isSaleOpen();
     expect(saleIsOpen).to.equal(false);
