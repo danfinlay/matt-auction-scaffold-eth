@@ -49,7 +49,12 @@ describe("MattAuction", function () {
 
     const signature = sigUtil.signTypedMessage(keyring.wallets[0].privateKey, typedMessageParams, 'V3');
 
-    const verified = await mattAuction.verifyBidSignature(bidderAddress, currencyTokenAddress, currencyTokenAmount, signature);
+    const signedBid = {
+      bid: message,
+      sig: signature,
+    };
+
+    const verified = await mattAuction.verifyBid(signedBid);
     expect(verified).to.equal(true);
   });
 
