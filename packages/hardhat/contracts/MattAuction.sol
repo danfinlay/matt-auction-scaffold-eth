@@ -90,7 +90,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
         assert(signed.bid.currencyTokenAddress == currencyTokenAddress);
 
         // Verify signature
-        assert(verifyBidSignature(signed.bid.bidderAddress, signed.bid.currencyTokenAddress, signed.bid.currencyTokenAmount, signed.sig));
+        assert(verifyBid(signed));
 
         // Transfer payment
         // Try catch method from https://blog.polymath.network/try-catch-in-solidity-handling-the-revert-exception-f53718f76047
@@ -163,22 +163,17 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     return digest;
   }
 
-  function verifyBidSignature(address bidderAddress,address currencyTokenAddress,uint256 currencyTokenAmount,bytes memory offchainSignature) public view returns (bool) {
-    bytes32 sigHash = getTypedDataHash(bidderAddress,currencyTokenAddress,currencyTokenAmount);
-
-    address recoveredSignatureSigner = recover(sigHash,offchainSignature);
-
-    require(bidderAddress == recoveredSignatureSigner, 'Invalid signature');
-    return true;
-  }
-
   function verifyBid(SignedBid memory signedBid) public view returns (bool) {
-    return verifyBidSignature(
+    bytes32 sigHash = getTypedDataHash(
       signedBid.bid.bidderAddress,
       signedBid.bid.currencyTokenAddress,
-      signedBid.bid.currencyTokenAmount,
-      signedBid.sig
+      signedBid.bid.currencyTokenAmount
     );
+
+    address recoveredSignatureSigner = recover(sigHash, signedBid.sig);
+
+    require(signedBid.bid.bidderAddress == recoveredSignatureSigner, 'Invalid signature');
+    return true;
   }
 }
 
