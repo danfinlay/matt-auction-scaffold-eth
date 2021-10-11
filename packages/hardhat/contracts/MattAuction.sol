@@ -15,7 +15,7 @@ import "./ECRecovery.sol";
 contract MattAuction is ERC721, Ownable, ECRecovery {
 
   bool saleIsOpen = true;
-  function isSaleOpen() external returns (bool) {
+  function isSaleOpen() external view returns (bool) {
     return saleIsOpen;
   }
 
@@ -23,7 +23,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   Counters.Counter private _tokenIds;
   string nftHash;
 
-  constructor(string memory _nftHash) public ERC721("MattAuction", "MATT") {
+  constructor(string memory _nftHash) ERC721("MattAuction", "MATT") {
     nftHash = _nftHash;
   }
 
@@ -90,7 +90,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   }
 
   event TransferFromFailed(address buyer);
-  function endAuction (bytes32 nftData, uint256 price, address currencyTokenAddress, SignedBid[] calldata signedBids) public onlyOwner {
+  function endAuction (uint256 price, address currencyTokenAddress, SignedBid[] calldata signedBids) public onlyOwner {
     require(saleIsOpen, "This contract has already conducted its one sale.");
 
     for (uint i=0; i < signedBids.length; i++) {
@@ -108,11 +108,12 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
         assert(verifyBidSignature(signed.bid.nft, signed.bid.bidderAddress, signed.bid.currencyTokenAddress, signed.bid.currencyTokenAmount, signed.sig));
 
         // Transfer payment
-        (bool success, bytes memory returnData) =
+        // Try catch method from https://blog.polymath.network/try-catch-in-solidity-handling-the-revert-exception-f53718f76047
+        (bool success, bytes memory _returnData) =
           address(currencyTokenAddress).call( // This creates a low level call to the token
             abi.encodePacked( // This encodes the function to call and the parameters to pass to that function
               IERC20(currencyTokenAddress).transferFrom.selector, // This is the function identifier of the function we want to call
-              abi.encode(signed.bid.currencyTokenAddress, msg.sender, price) // This encodes the parameter we want to pass to the function
+              abi.encode(signed.bid.currencyTokenAddress, owner(), price) // This encodes the parameter we want to pass to the function
             )
           );
       if (success) { // transferFrom completed successfully (did not revert)
@@ -192,6 +193,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     if (!revokedBids.is_in[offchainSignature]) {
       return true;
     }
+    return false;
   }
 }
 
