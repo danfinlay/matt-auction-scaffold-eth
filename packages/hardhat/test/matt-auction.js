@@ -43,12 +43,12 @@ describe("MattAuction", function () {
 
     const typedMessageParams = {
       data: typedMessage,
-      version: 'V3',
+      version: 'V4',
     }
 
     const msgHash = sigUtil.TypedDataUtils.sign(typedMessage);
 
-    const signature = sigUtil.signTypedMessage(keyring.wallets[0].privateKey, typedMessageParams, 'V3');
+    const signature = sigUtil.signTypedMessage(keyring.wallets[0].privateKey, typedMessageParams, 'V4');
 
     const signedBid = {
       bid: message,
