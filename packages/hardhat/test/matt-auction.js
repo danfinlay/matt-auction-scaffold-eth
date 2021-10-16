@@ -62,6 +62,9 @@ describe("MattAuction", function () {
     const mattAuction = await deployMatt();
     const bids = await createBids([0, 10, 50, 99], mattAuction);
     const bestBids = await chooseBestBids(bids, mattAuction);
+    console.dir(bestBids.map(b => BigNumber.from(b.bid.amount).toString()));
+    expect(bestBids.length).to.equal(2);
+
     await mattAuction.endAuction(
       '0x1',
       bestBids,
