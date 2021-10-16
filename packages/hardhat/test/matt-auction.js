@@ -7,12 +7,6 @@ const chooseBestBids = require('../scripts/chooseBestBids');
 const Keyring = require('eth-simple-keyring');
 const sigUtil = require('eth-sig-util');
 
-const account = {
-  address: '0x708ef7f37f853314b40539a102c18141b491f790',
-  privateKey: '0xa20d33a11f56d2ff8e1248ae07b494887f1274aac5a0e2e47683bf4ae43679f3',
-};
-const keyring = new Keyring([account.privateKey]);
-
 const sampleIpfsHash = 'QmcbMZW8hcd46AfUsJUxQYTanHYDpeUq3pBuX5nihPEKD9'; // "hello, world!"
 const sampleTokenAddress = '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826';
 
@@ -73,7 +67,26 @@ describe("MattAuction", function () {
     expect(saleIsOpen).to.equal(false);
   });
 
-  it('Should allow ending an auction with many bids, and mint NFTs to those bidders.');
+  it('Should allow ending an auction with many bids, and mint NFTs to those bidders.', async () => {
+    const mattAuction = await deployMatt();
+    const bids = await createBids([0, 10, 50, 99], mattAuction);
+    const bestBids = await chooseBestBids(bids, mattAuction);
+    expect(bestBids.length).to.equal(2);
+
+    await mattAuction.endAuction(
+      '0x1',
+      bestBids,
+    );
+
+    const saleIsOpen = await mattAuction.isSaleOpen();
+    expect(saleIsOpen).to.equal(false);
+
+    for (let i = 0; i < bestBids.length; i++) {
+      const balance = await mattAuction.balanceOf(bestBids[i].bid.bidder);
+      expect(balance.toString()).to.equal('1');
+    }
+  });
+
   it('Should only allow owner to end auctions');
   it('Should allocate NFTs to the winners');
   it('Should charge all bidders the same.');
@@ -82,10 +95,15 @@ describe("MattAuction", function () {
 });
 
 async function createAccounts(num = 10) {
-  const keyring = new Keyring();
-  await keyring.addAccounts(num);
+  const accounts = [];
 
-  return keyring;
+  for (let i = 0; i < num; i++) {
+    const keyring = new Keyring();
+    await keyring.addAccounts(1);
+    accounts.push(keyring);
+  }
+
+  return accounts;
 }
 
 async function createBids (bidNumbers, mattAuction) {
@@ -93,8 +111,9 @@ async function createBids (bidNumbers, mattAuction) {
   const accounts = await createAccounts(bidNumbers.length);
 
   for (let i = 0; i < bidNumbers.length; i++) {
+    const [address] = await accounts[i].getAccounts()
     const message = {
-      bidder: account.address,
+      bidder: address,
       token: sampleTokenAddress,
       amount: BigNumber.from(bidNumbers[i]).toHexString(),
     };
@@ -106,7 +125,7 @@ async function createBids (bidNumbers, mattAuction) {
       version: 'V4',
     }
 
-    const signature = sigUtil.signTypedMessage(keyring.wallets[0].privateKey, typedMessageParams, 'V4');
+    const signature = sigUtil.signTypedMessage(accounts[i].wallets[0].privateKey, typedMessageParams, 'V4');
 
     const signedBid = {
       bid: message,
