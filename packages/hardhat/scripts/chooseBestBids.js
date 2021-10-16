@@ -16,7 +16,7 @@ function createSumReducer (price) {
 
     const current = BigNumber.from(currentValue.bid.amount);
     if (current.gte(price)) {
-      return previousValue.add(current);
+      return previousValue.add(price);
     }
 
     return previousValue;
@@ -53,3 +53,4 @@ const verifiedBids = await asyncFilter(bids, async (bid) => {
 
   return topBids;
 }
+
