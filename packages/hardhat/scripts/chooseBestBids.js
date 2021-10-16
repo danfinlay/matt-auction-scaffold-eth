@@ -14,7 +14,7 @@ const sumReducer = (previousValue, currentValue) => {
 function createSumReducer (price) {
   return function (previousValue, currentValue) {
 
-    const current = BigNumber.from(currentValue.bid.currencyTokenAmount);
+    const current = BigNumber.from(currentValue.bid.amount);
     if (current.gte(price)) {
       return previousValue.add(current);
     }
@@ -29,15 +29,15 @@ const verifiedBids = await asyncFilter(bids, async (bid) => {
   })
 
   const sortedBids = verifiedBids.sort((a, b) => {
-    const bidA = BigNumber.from(a.bid.currencyTokenAmount);
-    const bidB = BigNumber.from(b.bid.currencyTokenAmount);
+    const bidA = BigNumber.from(a.bid.amount);
+    const bidB = BigNumber.from(b.bid.amount);
     return bidA.lt(bidB);
   });
 
   let topRev = BigNumber.from(0);
   let winningBid = BigNumber.from(0);
   for (let i = 1; i < sortedBids.length; i++) {
-    const price = BigNumber.from(sortedBids[i].bid.currencyTokenAmount);
+    const price = BigNumber.from(sortedBids[i].bid.amount);
     const totalRev = sortedBids.reduce(createSumReducer(price), BigNumber.from(0));
 
     if (totalRev.gt(topRev)) {
@@ -47,7 +47,7 @@ const verifiedBids = await asyncFilter(bids, async (bid) => {
   }
 
   const topBids = sortedBids.filter(n => {
-    const value = BigNumber.from(n.bid.currencyTokenAmount);
+    const value = BigNumber.from(n.bid.amount);
     return value.gte(winningBid);
   });
 

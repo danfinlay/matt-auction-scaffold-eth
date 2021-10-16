@@ -22,7 +22,7 @@ describe('chooseBestBids', function () {
     const mattAuction = await deployMatt();
     const bids = await createBids([1], mattAuction);
     const best = await chooseBestBids(bids, mattAuction);
-    const bid = BigNumber.from(best[0].bid.currencyTokenAmount);
+    const bid = BigNumber.from(best[0].bid.amount);
     expect(bid).to.equal(1);
   });
 
@@ -33,11 +33,11 @@ describe("MattAuction", function () {
     const mattAuction = await deployMatt();
 
     const message = {
-      bidderAddress: account.address,
-      currencyTokenAddress: sampleTokenAddress,
-      currencyTokenAmount: '0x100',
+      bidder: account.address,
+      token: sampleTokenAddress,
+      amount: '0x100',
     };
-    const { bidderAddress, currencyTokenAddress, currencyTokenAmount } = message;
+    const { bidder, token, amount } = message;
     expect(mattAuction.address).to.be.properAddress;
     const chainId = mattAuction.deployTransaction.chainId;
 
@@ -83,11 +83,11 @@ describe("MattAuction", function () {
     const mattAuction = await deployMatt();
 
     const message = {
-      bidderAddress: account.address,
-      currencyTokenAddress: sampleTokenAddress,
-      currencyTokenAmount: '0x100',
+      bidder: account.address,
+      token: sampleTokenAddress,
+      amount: '0x100',
     };
-    const { bidderAddress, currencyTokenAddress, currencyTokenAmount } = message;
+    const { bidder, token, amount } = message;
     expect(mattAuction.address).to.be.properAddress;
     const chainId = mattAuction.deployTransaction.chainId;
 
@@ -141,11 +141,11 @@ async function createBids (bidNumbers, mattAuction) {
 
   for (let i = 0; i < bidNumbers.length; i++) {
     const message = {
-      bidderAddress: account.address,
-      currencyTokenAddress: sampleTokenAddress,
-      currencyTokenAmount: BigNumber.from(bidNumbers[i]).toHexString(),
+      bidder: account.address,
+      token: sampleTokenAddress,
+      amount: BigNumber.from(bidNumbers[i]).toHexString(),
     };
-    const { bidderAddress, currencyTokenAddress, currencyTokenAmount } = message;
+    const { bidder, token, amount } = message;
     const chainId = mattAuction.deployTransaction.chainId;
 
     const typedMessage = {

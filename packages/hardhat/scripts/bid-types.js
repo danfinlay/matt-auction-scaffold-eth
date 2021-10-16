@@ -1,8 +1,8 @@
 const types = {
   Bid: [
-    { name: 'bidderAddress', type: 'address' },
-    { name: 'currencyTokenAddress', type: 'address' },
-    { name: 'currencyTokenAmount', type: 'uint256' },
+    { name: 'bidder', type: 'address' },
+    { name: 'token', type: 'address' },
+    { name: 'amount', type: 'uint256' },
   ],
   EIP712Domain: [
     { name: 'name', type: 'string' },
