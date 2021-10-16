@@ -26,6 +26,16 @@ describe('chooseBestBids', function () {
     expect(bid).to.equal(1);
   });
 
+
+  it('should choose the best bids with 1, 50, 99', async () => {
+    const mattAuction = await deployMatt();
+    const bids = await createBids([1, 50, 99], mattAuction);
+    const best = await chooseBestBids(bids, mattAuction);
+    expect(best.length).to.equal(2);
+    const bid = BigNumber.from(best[0].bid.amount);
+    expect(bid).to.equal(50);
+  });
+
 });
 
 describe("MattAuction", function () {
