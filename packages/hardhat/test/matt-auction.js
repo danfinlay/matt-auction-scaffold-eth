@@ -38,8 +38,9 @@ describe('chooseBestBids', function () {
 
 });
 
-describe("MattAuction", function () {
-  it("should verify a signature correctly", async function () {
+describe("MattAuction endAuction", function () {
+
+  it("should end with one bid", async function () {
     const mattAuction = await deployMatt();
 
     const message = {
@@ -49,19 +50,8 @@ describe("MattAuction", function () {
     };
     const { bidder, token, amount } = message;
     expect(mattAuction.address).to.be.properAddress;
-    const chainId = mattAuction.deployTransaction.chainId;
 
-    const typedMessage = {
-      types,
-      primaryType,
-      domain: {
-        name: 'MattAuction',
-        version: '1',
-        chainId,
-        verifyingContract: mattAuction.address,
-      },
-      message,
-    };
+    const typedMessage = createTypedMessage(mattAuction, message);
 
     const typedMessageParams = {
       data: typedMessage,
@@ -99,19 +89,8 @@ describe("MattAuction", function () {
     };
     const { bidder, token, amount } = message;
     expect(mattAuction.address).to.be.properAddress;
-    const chainId = mattAuction.deployTransaction.chainId;
 
-    const typedMessage = {
-      types,
-      primaryType,
-      domain: {
-        name: 'MattAuction',
-        version: '1',
-        chainId,
-        verifyingContract: mattAuction.address,
-      },
-      message,
-    };
+    const typedMessage = createTypedMessage(mattAuction, message);
 
     const typedMessageParams = {
       data: typedMessage,
@@ -135,6 +114,8 @@ describe("MattAuction", function () {
 
   it('Should only allow owner to end auctions');
   it('Should allocate NFTs to the winners');
+  it('Should charge all bidders the same.');
+  it('Should not charge a bid that is under the chosen price');
 
 });
 
@@ -156,19 +137,7 @@ async function createBids (bidNumbers, mattAuction) {
       amount: BigNumber.from(bidNumbers[i]).toHexString(),
     };
     const { bidder, token, amount } = message;
-    const chainId = mattAuction.deployTransaction.chainId;
-
-    const typedMessage = {
-      types,
-      primaryType,
-      domain: {
-        name: 'MattAuction',
-        version: '1',
-        chainId,
-        verifyingContract: mattAuction.address,
-      },
-      message,
-    };
+    const typedMessage = createTypedMessage(mattAuction, message);
 
     const typedMessageParams = {
       data: typedMessage,
@@ -192,4 +161,19 @@ async function deployMatt () {
   const MattAuction = await ethers.getContractFactory("MattAuction");
   const mattAuction = await MattAuction.deploy(sampleIpfsHash, sampleTokenAddress);
   return mattAuction.deployed();
+}
+
+function createTypedMessage (mattAuction, message) {
+  const chainId = mattAuction.deployTransaction.chainId;
+  return {
+    types,
+    primaryType,
+    domain: {
+      name: 'MattAuction',
+      version: '1',
+      chainId,
+      verifyingContract: mattAuction.address,
+    },
+    message,
+  };
 }
