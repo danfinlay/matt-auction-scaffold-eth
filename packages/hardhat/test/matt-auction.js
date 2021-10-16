@@ -73,6 +73,9 @@ describe("MattAuction", function () {
     const bestBids = await chooseBestBids(bids, mattAuction);
     expect(bestBids.length).to.equal(2);
 
+    const balance = await mattAuction.balanceOf(bestBids[0].bid.bidder);
+    expect(balance.toString()).to.equal('0');
+
     await mattAuction.endAuction(
       '0x1',
       bestBids,
