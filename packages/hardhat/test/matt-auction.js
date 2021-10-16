@@ -87,6 +87,8 @@ describe("MattAuction", function () {
     for (let i = 0; i < bestBids.length; i++) {
       const balance = await mattAuction.balanceOf(bestBids[i].bid.bidder);
       expect(balance.toString()).to.equal('1');
+      const uri = await mattAuction.tokenURI(1);
+      expect(uri).to.equal('ipfs://' + sampleIpfsHash);
     }
   });
 
