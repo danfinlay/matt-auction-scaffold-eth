@@ -58,39 +58,20 @@ describe("MattAuction", function () {
     expect(saleIsOpen).to.equal(false);
   });
 
-  it('Should allow ending an auction with many bids, and mint NFTs to those bidders.', async () => {
+  it("should endAuction with many bids", async () => {
     const mattAuction = await deployMatt();
-
-    const message = {
-      bidder: account.address,
-      token: sampleTokenAddress,
-      amount: '0x100',
-    };
-    const { bidder, token, amount } = message;
-    expect(mattAuction.address).to.be.properAddress;
-
-    const typedMessage = createTypedMessage(mattAuction, message);
-
-    const typedMessageParams = {
-      data: typedMessage,
-      version: 'V4',
-    }
-
-    const msgHash = sigUtil.TypedDataUtils.sign(typedMessage);
-
-    const signedBids = await createBids([50, 99], mattAuction);
-    const bestBids = await chooseBestBids(signedBids, mattAuction);
-
+    const bids = await createBids([0, 10, 50, 99], mattAuction);
+    const bestBids = await chooseBestBids(bids, mattAuction);
     await mattAuction.endAuction(
       '0x1',
-      signedBids,
+      bestBids,
     );
 
     const saleIsOpen = await mattAuction.isSaleOpen();
     expect(saleIsOpen).to.equal(false);
-
   });
 
+  it('Should allow ending an auction with many bids, and mint NFTs to those bidders.');
   it('Should only allow owner to end auctions');
   it('Should allocate NFTs to the winners');
   it('Should charge all bidders the same.');
