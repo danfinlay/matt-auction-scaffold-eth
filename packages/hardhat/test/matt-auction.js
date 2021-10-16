@@ -38,41 +38,20 @@ describe('chooseBestBids', function () {
 
 });
 
-describe("MattAuction endAuction", function () {
-
-  it("should end with one bid", async function () {
+describe("MattAuction", function () {
+  it("verifyBid should verify a bid", async () => {
     const mattAuction = await deployMatt();
-
-    const message = {
-      bidder: account.address,
-      token: sampleTokenAddress,
-      amount: '0x100',
-    };
-    const { bidder, token, amount } = message;
-    expect(mattAuction.address).to.be.properAddress;
-
-    const typedMessage = createTypedMessage(mattAuction, message);
-
-    const typedMessageParams = {
-      data: typedMessage,
-      version: 'V4',
-    }
-
-    const msgHash = sigUtil.TypedDataUtils.sign(typedMessage);
-
-    const signature = sigUtil.signTypedMessage(keyring.wallets[0].privateKey, typedMessageParams, 'V4');
-
-    const signedBid = {
-      bid: message,
-      sig: signature,
-    };
-
-    const verified = await mattAuction.verifyBid(signedBid);
+    const bids = await createBids([1], mattAuction);
+    const verified = await mattAuction.verifyBid(bids[0]);
     expect(verified).to.equal(true);
+  });
 
+  it("endAuction should end with one bid", async function () {
+    const mattAuction = await deployMatt();
+    const bids = await createBids(['0x100'], mattAuction);
     await mattAuction.endAuction(
       '0x1',
-      [signedBid],
+      bids,
     );
 
     const saleIsOpen = await mattAuction.isSaleOpen();
