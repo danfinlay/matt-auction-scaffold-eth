@@ -7,12 +7,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ECRecovery.sol";
 //learn more: https://docs.openzeppelin.com/contracts/3.x/erc721
 
-// Just for debugging, TODO: Remove for prod
 // import "hardhat/console.sol";
+// Just for debugging, TODO: Remove for prod
 
 // GET LISTED ON OPENSEA: https://testnets.opensea.io/get-listed/step-two
 
 contract MattAuction is ERC721, Ownable, ECRecovery {
+
+  IERC20 token;
 
   bool saleIsOpen = true;
   function isSaleOpen() external view returns (bool) {
@@ -27,6 +29,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   constructor(string memory _nftHash, address _currencyToken) ERC721("MattAuction", "MATT") {
     nftHash = _nftHash;
     _token = _currencyToken;
+    token = IERC20(_token);
   }
 
   function _baseURI() internal view virtual override returns (string memory) {
@@ -79,34 +82,36 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     require(saleIsOpen, "This contract has already conducted its one sale.");
 
     for (uint i=0; i < signedBids.length; i++) {
-        SignedBid memory signed = signedBids[i];
+      SignedBid memory signed = signedBids[i];
 
-        // Enforce all bids are above or equal to the first (low) bid price:
-        // TODO: Use safe math
-        require(signed.bid.amount >= price, 'bid underpriced');
+      // Enforce all bids are above or equal to the first (low) bid price:
+      // TODO: Use safe math
+      require(signed.bid.amount >= price, 'bid underpriced');
 
-        // Ensure the bid meant to be in the auction's currency.
-        // This data was redundant to sign, but improves end-user legibility.
-        require(signed.bid.token == _token, 'bid in wrong currency');
+      // Ensure the bid meant to be in the auction's currency.
+      // This data was redundant to sign, but improves end-user legibility.
+      require(signed.bid.token == _token, 'bid in wrong currency');
 
-        // Verify signature
-        require(verifyBid(signed), 'bid signature invalid');
+      // Verify signature
+      require(verifyBid(signed), 'bid signature invalid');
 
-        // Transfer payment
-        // Try catch method from https://blog.polymath.network/try-catch-in-solidity-handling-the-revert-exception-f53718f76047
-        (bool success, bytes memory _returnData) =
-          address(_token).call( // This creates a low level call to the token
-            abi.encodePacked( // This encodes the function to call and the parameters to pass to that function
-              IERC20(_token).transferFrom.selector, // This is the function identifier of the function we want to call
-              abi.encode(signed.bid.token, owner(), price) // This encodes the parameter we want to pass to the function
-            )
-          );
-      if (success) { // transferFrom completed successfully (did not revert)
+      //check allowance
+      uint256 allowance = token.allowance(
+        signed.bid.bidder,
+        address(this)
+      );
+
+      if (allowance >= price) {
+
+        token.transferFrom(
+          signed.bid.bidder,
+          owner(),
+          price
+        );
+
         mintItem(signed.bid.bidder);
-      } else { // transferFrom reverted. However, the complete tx did not revert and we can handle the case here.
-        // I will emit an event here to show this
-        emit TransferFromFailed(signed.bid.bidder);
       }
+    //    emit TransferFromFailed(signed.bid.bidder);
     }
 
     saleIsOpen = false;
@@ -140,21 +145,21 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
 
   function getPacketHash(
     address bidder,
-    address token,
+    address tokenAddr,
     uint256 amount
   ) public pure returns (bytes32) {
     return keccak256(abi.encode(
       PACKET_TYPEHASH,
       bidder,
-      token,
+      tokenAddr,
       amount
     ));
   }
 
-  function getTypedDataHash(address bidder,address token,uint256 amount) public view returns (bytes32) {
+  function getTypedDataHash(address bidder,address tokenAddr,uint256 amount) public view returns (bytes32) {
 
     bytes32 domainHash = getEIP712DomainHash('MattAuction','1',block.chainid,address(this));
-    bytes32 packetHash = getPacketHash(bidder,token,amount);
+    bytes32 packetHash = getPacketHash(bidder,tokenAddr,amount);
     bytes32 digest = keccak256(abi.encodePacked(
       "\x19\x01",
       domainHash,

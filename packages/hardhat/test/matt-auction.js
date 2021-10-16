@@ -93,7 +93,7 @@ describe("MattAuction", function () {
   });
 
   it('Should only allow owner to end auctions');
-  it('Should allocate NFTs to the winners');
+  it('Should not allocate NFTs to people who did not grant an allowance');
   it('Should charge all bidders the same.');
   it('Should not charge a bid that is under the chosen price');
 
