@@ -15,7 +15,7 @@ import "./ECRecovery.sol";
 contract MattAuction is ERC721, Ownable, ECRecovery {
 
   IERC20 token;
-  bytes32 domainHash;
+  bytes32 immutable domainHash;
 
   bool saleIsOpen = true;
   function isSaleOpen() external view returns (bool) {
