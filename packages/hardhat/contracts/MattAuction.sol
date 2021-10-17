@@ -15,6 +15,7 @@ import "./ECRecovery.sol";
 contract MattAuction is ERC721, Ownable, ECRecovery {
 
   IERC20 token;
+  bytes32 domainHash;
 
   bool saleIsOpen = true;
   function isSaleOpen() external view returns (bool) {
@@ -27,6 +28,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   address _token;
 
   constructor(string memory _nftHash, address _currencyToken) ERC721("MattAuction", "MATT") {
+    domainHash = getEIP712DomainHash('MattAuction','1',block.chainid,address(this));
     nftHash = _nftHash;
     _token = _currencyToken;
     token = IERC20(_token);
@@ -118,7 +120,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   );
 
   bytes32 constant EIP712DOMAIN_TYPEHASH = keccak256(
-      "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
   );
 
   function getDomainTypehash() public pure returns (bytes32) {
@@ -153,8 +155,6 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
   }
 
   function getTypedDataHash(address bidder,address tokenAddr,uint256 amount) public view returns (bytes32) {
-
-    bytes32 domainHash = getEIP712DomainHash('MattAuction','1',block.chainid,address(this));
     bytes32 packetHash = getPacketHash(bidder,tokenAddr,amount);
     bytes32 digest = keccak256(abi.encodePacked(
       "\x19\x01",
