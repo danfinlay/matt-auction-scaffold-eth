@@ -95,23 +95,18 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
       // Verify signature
       require(verifyBid(signed), 'bid signature invalid');
 
-      //check allowance
-      uint256 allowance = token.allowance(
+      bool success = token.transferFrom(
         signed.bid.bidder,
-        address(this)
+        owner(),
+        price
       );
 
-      if (allowance >= price) {
-
-        token.transferFrom(
-          signed.bid.bidder,
-          owner(),
-          price
-        );
-
+      if (success) {
         mintItem(signed.bid.bidder);
+      } else {
+        emit TransferFromFailed(signed.bid.bidder);
       }
-    //    emit TransferFromFailed(signed.bid.bidder);
+
     }
 
     saleIsOpen = false;

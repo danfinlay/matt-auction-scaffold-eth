@@ -13,8 +13,9 @@ const sampleTokenAddress = '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826';
 describe('chooseBestBids', function () {
 
   it('should choose the best bids with 1', async () => {
-    const mattAuction = await deployMatt();
-    const bids = await createBids([1], mattAuction);
+    const token = await deployToken();
+    const mattAuction = await deployMatt(token);
+    const bids = await createBids([1], mattAuction, token);
     const best = await chooseBestBids(bids, mattAuction);
     const bid = BigNumber.from(best[0].bid.amount);
     expect(bid).to.equal(1);
@@ -22,8 +23,9 @@ describe('chooseBestBids', function () {
 
 
   it('should choose the best bids with 1, 50, 99', async () => {
-    const mattAuction = await deployMatt();
-    const bids = await createBids([1, 50, 99], mattAuction);
+    const token = await deployToken();
+    const mattAuction = await deployMatt(token);
+    const bids = await createBids([1, 50, 99], mattAuction, token);
     const best = await chooseBestBids(bids, mattAuction);
     expect(best.length).to.equal(2);
     const bid = BigNumber.from(best[0].bid.amount);
@@ -34,15 +36,17 @@ describe('chooseBestBids', function () {
 
 describe("MattAuction", function () {
   it("verifyBid should verify a bid", async () => {
-    const mattAuction = await deployMatt();
-    const bids = await createBids([1], mattAuction);
+    const token = await deployToken();
+    const mattAuction = await deployMatt(token);
+    const bids = await createBids([1], mattAuction, token);
     const verified = await mattAuction.verifyBid(bids[0]);
     expect(verified).to.equal(true);
   });
 
   it("endAuction should end with one bid", async function () {
-    const mattAuction = await deployMatt();
-    const bids = await createBids(['0x100'], mattAuction);
+    const token = await deployToken();
+    const mattAuction = await deployMatt(token);
+    const bids = await createBids(['0x100'], mattAuction, token);
     await mattAuction.endAuction(
       '0x1',
       bids,
@@ -53,8 +57,9 @@ describe("MattAuction", function () {
   });
 
   it("should endAuction with many bids", async () => {
-    const mattAuction = await deployMatt();
-    const bids = await createBids([0, 10, 50, 99], mattAuction);
+    const token = await deployToken();
+    const mattAuction = await deployMatt(token);
+    const bids = await createBids([0, 10, 50, 99], mattAuction, token);
     const bestBids = await chooseBestBids(bids, mattAuction);
     expect(bestBids.length).to.equal(2);
 
@@ -68,8 +73,9 @@ describe("MattAuction", function () {
   });
 
   it('Should allow ending an auction with many bids, and mint NFTs to those bidders.', async () => {
-    const mattAuction = await deployMatt();
-    const bids = await createBids([0, 10, 50, 99], mattAuction);
+    const token = await deployToken();
+    const mattAuction = await deployMatt(token);
+    const bids = await createBids([0, 10, 50, 99], mattAuction, token);
     const bestBids = await chooseBestBids(bids, mattAuction);
     expect(bestBids.length).to.equal(2);
 
@@ -111,18 +117,27 @@ async function createAccounts(num = 10) {
   return accounts;
 }
 
-async function createBids (bidNumbers, mattAuction) {
+async function createBids (bidNumbers, mattAuction, token) {
   const bids = [];
   const accounts = await createAccounts(bidNumbers.length);
 
   for (let i = 0; i < bidNumbers.length; i++) {
     const [address] = await accounts[i].getAccounts()
+    await giveEtherTo(address);
+
+    const signer = new ethers.Wallet(accounts[i].wallets[0].privateKey, ethers.provider);
+    await token.transfer(address, 100);
+
     const message = {
       bidder: address,
-      token: sampleTokenAddress,
+      token: token.address,
       amount: BigNumber.from(bidNumbers[i]).toHexString(),
     };
-    const { bidder, token, amount } = message;
+
+    await token.connect(signer).approve(
+      mattAuction.address,
+      message.amount
+    );
     const typedMessage = createTypedMessage(mattAuction, message);
 
     const typedMessageParams = {
@@ -143,9 +158,10 @@ async function createBids (bidNumbers, mattAuction) {
   return bids;
 }
 
-async function deployMatt () {
+async function deployMatt (tokenContract) {
+  const tokenAddress = tokenContract ? tokenContract.address : sampleTokenAddress;
   const MattAuction = await ethers.getContractFactory("MattAuction");
-  const mattAuction = await MattAuction.deploy(sampleIpfsHash, sampleTokenAddress);
+  const mattAuction = await MattAuction.deploy(sampleIpfsHash, tokenAddress);
   return mattAuction.deployed();
 }
 
@@ -163,3 +179,19 @@ function createTypedMessage (mattAuction, message) {
     message,
   };
 }
+
+async function deployToken () {
+  const Token = await ethers.getContractFactory("Token");
+  const token = await Token.deploy();
+  await token.deployed();
+  return token;
+}
+
+async function giveEtherTo (address) {
+  const [owner] = await ethers.getSigners();
+  await owner.sendTransaction({
+    to: address,
+    value: BigNumber.from(10).pow(18),
+  });
+}
+
