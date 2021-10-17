@@ -84,16 +84,17 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     for (uint i=0; i < signedBids.length; i++) {
       SignedBid memory signed = signedBids[i];
 
-      // Enforce all bids are above or equal to the first (low) bid price:
-      // TODO: Use safe math
-      require(signed.bid.amount >= price, 'bid underpriced');
-
-      // Ensure the bid meant to be in the auction's currency.
-      // This data was redundant to sign, but improves end-user legibility.
-      require(signed.bid.token == _token, 'bid in wrong currency');
-
-      // Verify signature
-      require(verifyBid(signed), 'bid signature invalid');
+      // Skip invalid bids.
+      // Sure, we could throw errors, but why waste gas?
+      if (
+        // Under-priced bids
+        signed.bid.amount < price ||
+        // Bids in the wrong currency
+        signed.bid.token != _token ||
+        // Bids that are not signed correctly
+        !verifyBid(signed)) {
+        continue;
+      }
 
       bool success = token.transferFrom(
         signed.bid.bidder,
