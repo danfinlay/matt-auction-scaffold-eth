@@ -43,6 +43,19 @@ describe("MattAuction", function () {
     expect(verified).to.equal(true);
   });
 
+  it("endAuction should end with no bid", async function () {
+    const token = await deployToken();
+    const mattAuction = await deployMatt(token);
+    const bids = await createBids([], mattAuction, token);
+    await mattAuction.endAuction(
+      '0x1',
+      bids,
+    );
+
+    const saleIsOpen = await mattAuction.isSaleOpen();
+    expect(saleIsOpen).to.equal(false);
+  });
+
   it("endAuction should end with one bid", async function () {
     const token = await deployToken();
     const mattAuction = await deployMatt(token);
@@ -98,9 +111,42 @@ describe("MattAuction", function () {
     }
   });
 
-  it('Should only allow owner to end auctions');
-  it('Should not allocate NFTs to people who did not grant an allowance');
-  it('Should charge all bidders the same.');
+  it('Should charge all bidders the same.', async () => {
+
+    const token = await deployToken();
+    const mattAuction = await deployMatt(token);
+    const bids = await createBids([0, 10, 50, 100, 102, 100], mattAuction, token);
+    const bestBids = await chooseBestBids(bids, mattAuction);
+
+    const balance = await mattAuction.balanceOf(bestBids[0].bid.bidder);
+    expect(balance.toString()).to.equal('0');
+
+    const [owner] = await ethers.getSigners();
+    await trashTokenBalance(token, owner.address);
+    await mattAuction.endAuction(
+      bestBids[0].bid.amount,
+      bestBids,
+    );
+
+    const saleIsOpen = await mattAuction.isSaleOpen();
+    expect(saleIsOpen).to.equal(false);
+
+    let lastBid;
+    for (let i = 0; i < bestBids.length; i++) {
+      const balance = await token.balanceOf(bestBids[i].bid.bidder);
+      if (!lastBid) {
+        lastBid = balance;
+      } else {
+        expect(balance.eq(lastBid));
+        lastBid = balance;
+      }
+    }
+
+    const ownerBalance = await token.balanceOf(owner.address);
+    expect(ownerBalance.toString()).to.equal('300');
+
+  });
+
   it('Should not charge a bid that is under the chosen price');
 
 });
@@ -195,3 +241,7 @@ async function giveEtherTo (address) {
   });
 }
 
+async function trashTokenBalance (token, owner) {
+  const balance = await token.balanceOf(owner);
+  return await token.transfer(sampleTokenAddress, balance.toHexString());
+}
