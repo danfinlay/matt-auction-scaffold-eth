@@ -549,7 +549,7 @@ function App(props) {
               }}
               to="/bid"
             >
-             Bid 
+             Bid
             </Link>
           </Menu.Item>
           <Menu.Item key="/">
@@ -764,7 +764,15 @@ function App(props) {
           </Route>
           <Route path="/debugcontracts">
             <Contract
-              name="YourCollectible"
+              name="MattAuction"
+              signer={userSigner}
+              provider={localProvider}
+              address={address}
+              blockExplorer={blockExplorer}
+              contractConfig={contractConfig}
+            />
+            <Contract
+              name="Token"
               signer={userSigner}
               provider={localProvider}
               address={address}
@@ -847,4 +855,3 @@ function App(props) {
 }
 
 export default App;
-
