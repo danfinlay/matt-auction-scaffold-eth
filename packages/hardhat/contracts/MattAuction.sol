@@ -1,10 +1,10 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./ECRecovery.sol";
+import "./types.sol";
 //learn more: https://docs.openzeppelin.com/contracts/3.x/erc721
 
 // import "hardhat/console.sol";
@@ -12,7 +12,7 @@ import "./ECRecovery.sol";
 
 // GET LISTED ON OPENSEA: https://testnets.opensea.io/get-listed/step-two
 
-contract MattAuction is ERC721, Ownable, ECRecovery {
+contract MattAuction is ERC721, Ownable, EIP712Decoder {
 
   IERC20 token;
   bytes32 immutable domainHash;
@@ -63,20 +63,9 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
           : '';
   }
 
-  struct Bid {
-      address bidder;
-      address token;
-      uint256 amount;
-  }
-
   struct SignedBid {
-      Bid bid;
-      bytes sig;
-  }
-
-  struct Set {
-    bytes[] values;
-    mapping (bytes => bool) is_in;
+    Bid bid;
+    bytes sig;
   }
 
   event TransferFromFailed(address buyer);
@@ -84,7 +73,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     require(saleIsOpen, "This contract has already conducted its one sale.");
 
     for (uint i=0; i < signedBids.length; i++) {
-      SignedBid memory signed = signedBids[i];
+      SignedBid calldata signed = signedBids[i];
 
       // Skip invalid bids.
       // Sure, we could throw errors, but why waste gas?
@@ -115,18 +104,7 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     saleIsOpen = false;
   }
 
-  bytes32 constant PACKET_TYPEHASH = keccak256(
-    "Bid(address bidder,address token,uint256 amount)"
-  );
-
-  bytes32 constant EIP712DOMAIN_TYPEHASH = keccak256(
-    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-  );
-
-  function getDomainTypehash() public pure returns (bytes32) {
-      return EIP712DOMAIN_TYPEHASH;
-  }
-
+  // EIP712 Signature Related Code:
   function getEIP712DomainHash(string memory contractName, string memory version, uint256 chainId, address verifyingContract) public pure returns (bytes32) {
     return keccak256(abi.encode(
       EIP712DOMAIN_TYPEHASH,
@@ -137,25 +115,8 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     ));
   }
 
-  function getPacketTypehash()  public pure returns (bytes32) {
-    return PACKET_TYPEHASH;
-  }
-
-  function getPacketHash(
-    address bidder,
-    address tokenAddr,
-    uint256 amount
-  ) public pure returns (bytes32) {
-    return keccak256(abi.encode(
-      PACKET_TYPEHASH,
-      bidder,
-      tokenAddr,
-      amount
-    ));
-  }
-
-  function getTypedDataHash(address bidder,address tokenAddr,uint256 amount) public view returns (bytes32) {
-    bytes32 packetHash = getPacketHash(bidder,tokenAddr,amount);
+  function getBidTypedDataHash(Bid calldata bid) public view returns (bytes32) {
+    bytes32 packetHash = GET_BID_PACKETHASH(bid);
     bytes32 digest = keccak256(abi.encodePacked(
       "\x19\x01",
       domainHash,
@@ -164,12 +125,8 @@ contract MattAuction is ERC721, Ownable, ECRecovery {
     return digest;
   }
 
-  function verifyBid(SignedBid memory signedBid) public view returns (bool) {
-    bytes32 sigHash = getTypedDataHash(
-      signedBid.bid.bidder,
-      signedBid.bid.token,
-      signedBid.bid.amount
-    );
+  function verifyBid(SignedBid calldata signedBid) public view returns (bool) {
+    bytes32 sigHash = getBidTypedDataHash(signedBid.bid);
 
     address recoveredSignatureSigner = recover(sigHash, signedBid.sig);
 
